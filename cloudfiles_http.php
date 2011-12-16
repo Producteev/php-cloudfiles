@@ -971,8 +971,8 @@ class CF_Http
 
         $conn_type = "COPY";
 
-        $url_path = $this->_make_path("STORAGE", $container_name_source, rawurlencode($src_obj_name));
-        $destination = rawurlencode($container_name_target."/".$dest_obj_name);
+        $url_path = $this->_make_path("STORAGE", $container_name_source, self::_urllib_quote(rawurlencode($src_obj_name)));
+        $destination = rawurlencode($container_name_target."/".self::_urllib_quote(rawurlencode($dest_obj_name)));
 
         $hdrs = self::_process_headers($metadata, $headers);
         $hdrs[DESTINATION] = $destination;
@@ -1345,11 +1345,15 @@ class CF_Http
             $path[] = rawurlencode($c);
         }
         if ($o) {
-            # mimic Python''s urllib.quote() feature of a "safe" '/' character
-            #
-            $path[] = str_replace("%2F","/",rawurlencode($o));
+        	$path[] = self::_urllib_quote(rawurlencode($o));
         }
         return implode("/",$path);
+    }
+
+    #mimics Python''s urllib.quote() feature of a "safe" '/' character
+    private static function _urllib_quote($subject)
+    {
+    	return str_replace("%2F","/",$subject);
     }
 
     private function _headers(&$obj)
