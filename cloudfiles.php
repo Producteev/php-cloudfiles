@@ -431,7 +431,7 @@ class CF_Connection
      * <code>
      * # ... authentication code excluded (see previous examples) ...
      * #
-     * $conn = new CF_Authentication($auth);
+     * $conn = new CF_Connection($auth);
      *
      * list($quantity, $bytes) = $conn->get_info();
      * print "Number of containers: " . $quantity . "\n";
@@ -465,7 +465,7 @@ class CF_Connection
      * <code>
      * # ... authentication code excluded (see previous examples) ...
      * #
-     * $conn = new CF_Authentication($auth);
+     * $conn = new CF_Connection($auth);
      *
      * $images = $conn->create_container("my photos");
      * </code>
@@ -520,7 +520,7 @@ class CF_Connection
      * <code>
      * # ... authentication code excluded (see previous examples) ...
      * #
-     * $conn = new CF_Authentication($auth);
+     * $conn = new CF_Connection($auth);
      *
      * $conn->delete_container("my photos");
      * </code>
@@ -582,7 +582,7 @@ class CF_Connection
      * <code>
      * # ... authentication code excluded (see previous examples) ...
      * #
-     * $conn = new CF_Authentication($auth);
+     * $conn = new CF_Connection($auth);
      *
      * $images = $conn->get_container("my photos");
      * print "Number of Objects: " . $images->count . "\n";
@@ -623,7 +623,7 @@ class CF_Connection
      * <code>
      * # ... authentication code excluded (see previous examples) ...
      * #
-     * $conn = new CF_Authentication($auth);
+     * $conn = new CF_Connection($auth);
      *
      * $clist = $conn->get_containers();
      * foreach ($clist as $cont) {
@@ -664,7 +664,7 @@ class CF_Connection
      * <code>
      * # ... authentication code excluded (see previous examples) ...
      * #
-     * $conn = new CF_Authentication($auth);
+     * $conn = new CF_Connection($auth);
      *
      * $container_list = $conn->list_containers();
      * print_r($container_list);
@@ -754,7 +754,7 @@ class CF_Connection
      * <code>
      * # ... authentication code excluded (see previous examples) ...
      * #
-     * $conn = new CF_Authentication($auth);
+     * $conn = new CF_Connection($auth);
      *
      * $public_containers = $conn->list_public_containers();
      * print_r($public_containers);
@@ -921,7 +921,7 @@ class CF_Container
     public $name;
     public $object_count;
     public $bytes_used;
-
+    public $metadata;
     public $cdn_enabled;
     public $cdn_streaming_uri;
     public $cdn_ssl_uri;
@@ -959,6 +959,7 @@ class CF_Container
         $this->name = $name;
         $this->object_count = $count;
         $this->bytes_used = $bytes;
+        $this->metadata = array();
         $this->cdn_enabled = NULL;
         $this->cdn_uri = NULL;
         $this->cdn_ssl_uri = NULL;
@@ -1014,7 +1015,7 @@ class CF_Container
      * <code>
      * # ... authentication code excluded (see previous examples) ...
      * #
-     * $conn = new CF_Authentication($auth);
+     * $conn = new CF_Connection($auth);
      *
      * $public_container = $conn->create_container("public");
      *
@@ -1079,7 +1080,7 @@ class CF_Container
      * <code>
      * # ... authentication code excluded (see previous examples) ...
      * #
-     * $conn = new CF_Authentication($auth);
+     * $conn = new CF_Connection($auth);
      * $container = $conn->get_container("cdn_enabled");
      * $container->purge_from_cdn("user@domain.com");
      * # or
@@ -1111,7 +1112,7 @@ class CF_Container
      * <code>
      * # ... authentication code excluded (see previous examples) ...
      * #
-     * $conn = new CF_Authentication($auth);
+     * $conn = new CF_Connection($auth);
      *
      * $public_container = $conn->get_container("public");
      *
@@ -1151,7 +1152,7 @@ class CF_Container
      * <code>
      * # ... authentication code excluded (see previous examples) ...
      * #
-     * $conn = new CF_Authentication($auth);
+     * $conn = new CF_Connection($auth);
      *
      * $public_container = $conn->get_container("public");
      *
@@ -1197,7 +1198,7 @@ class CF_Container
      * <code>
      * # ... authentication code excluded (see previous examples) ...
      * #
-     * $conn = new CF_Authentication($auth);
+     * $conn = new CF_Connection($auth);
      *
      * $public_container = $conn->get_container("public");
      *
@@ -1245,7 +1246,7 @@ class CF_Container
      * <code>
      * # ... authentication code excluded (see previous examples) ...
      * #
-     * $conn = new CF_Authentication($auth);
+     * $conn = new CF_Connection($auth);
      *
      * $public_container = $conn->get_container("public");
      *
@@ -1295,7 +1296,7 @@ class CF_Container
      * <code>
      * # ... authentication code excluded (see previous examples) ...
      * #
-     * $conn = new CF_Authentication($auth);
+     * $conn = new CF_Connection($auth);
      *
      * $public_container = $conn->get_container("public");
      *
@@ -1321,7 +1322,7 @@ class CF_Container
      * <code>
      * # ... authentication code excluded (see previous examples) ...
      * #
-     * $conn = new CF_Authentication($auth);
+     * $conn = new CF_Connection($auth);
      *
      * $public_container = $conn->get_container("public");
      *
@@ -1349,7 +1350,7 @@ class CF_Container
      * <code>
      * # ... authentication code excluded (see previous examples) ...
      * #
-     * $conn = new CF_Authentication($auth);
+     * $conn = new CF_Connection($auth);
      *
      * $public_container = $conn->get_container("public");
      *
@@ -1471,11 +1472,11 @@ class CF_Container
      * @return array array of strings
      * @throws InvalidResponseException unexpected response
      */
-    function get_objects($limit=0, $marker=NULL, $prefix=NULL, $path=NULL)
+    function get_objects($limit=0, $marker=NULL, $prefix=NULL, $path=NULL, $delimiter=NULL)
     {
         list($status, $reason, $obj_array) =
             $this->cfs_http->get_objects($this->name, $limit,
-                $marker, $prefix, $path);
+                $marker, $prefix, $path, $delimiter);
         #if ($status == 401 && $this->_re_auth()) {
         #    return $this->get_objects($limit, $marker, $prefix, $path);
         #}
@@ -1485,12 +1486,14 @@ class CF_Container
         }
         $objects = array();
         foreach ($obj_array as $obj) {
+          if(!isset($obj['subdir'])) {
             $tmp = new CF_Object($this, $obj["name"], False, False);
             $tmp->content_type = $obj["content_type"];
             $tmp->content_length = (float) $obj["bytes"];
             $tmp->set_etag($obj["hash"]);
             $tmp->last_modified = $obj["last_modified"];
             $objects[] = $tmp;
+          }
         }
         return $objects;
     }
@@ -1505,7 +1508,7 @@ class CF_Container
      * <code>
      * # ... authentication code excluded (see previous examples) ...
      * #
-     * $conn = new CF_Authentication($auth);
+     * $conn = new CF_Connection($auth);
      *
      * $images = $conn->get_container("my photos");
      *
@@ -1579,7 +1582,7 @@ class CF_Container
      * <code>
      * # ... authentication code excluded (see previous examples) ...
      * #
-     * $conn = new CF_Authentication($auth);
+     * $conn = new CF_Connection($auth);
      *
      * $images = $conn->get_container("my photos");
      *
@@ -1654,7 +1657,7 @@ class CF_Container
      * <code>
      * # ... authentication code excluded (see previous examples) ...
      * #
-     * $conn = new CF_Authentication($auth);
+     * $conn = new CF_Connection($auth);
      *
      * $images = $conn->get_container("my photos");
      *
@@ -1694,7 +1697,7 @@ class CF_Container
      * <code>
      * # ... authentication code excluded (see previous examples) ...
      * #
-     * $conn = new CF_Authentication($auth);
+     * $conn = new CF_Connection($auth);
      *
      * $images = $conn->get_container("my photos");
      *
@@ -1734,7 +1737,7 @@ class CF_Container
      * <code>
      * # ... authentication code excluded (see previous examples) ...
      * #
-     * $conn = new CF_Authentication($auth);
+     * $conn = new CF_Connection($auth);
      *
      * $images = $conn->get_container("my photos");
      *
@@ -2451,7 +2454,7 @@ class CF_Object
      * <code>
      * # ... authentication code excluded (see previous examples) ...
      * #
-     * $conn = new CF_Authentication($auth);
+     * $conn = new CF_Connection($auth);
      * $container = $conn->get_container("cdn_enabled");
      * $obj = $container->get_object("object");
      * $obj->purge_from_cdn("user@domain.com");
@@ -2459,6 +2462,7 @@ class CF_Object
      * $obj->purge_from_cdn();
      * # or 
      * $obj->purge_from_cdn("user1@domain.com,user2@domain.com");
+     * </code>
      * @returns boolean True if successful
      * @throws CDNNotEnabledException if CDN Is not enabled on this connection
      * @throws InvalidResponseException if the response expected is not returned
@@ -2564,6 +2568,27 @@ class CF_Object
         $this->headers = $headers;
         $this->manifest = $manifest;
         return True;
+    }
+     /**
+     * Generate a Temp Url for a object
+     * Example:
+     * <code>
+     * # ... authentication code excluded (see previous examples) ...
+     * $conn = new CF_Connection($auth);
+     * $container = $conn->get_container("foo");
+     * $obj = $container->get_object("foo");
+     * $obj->get_tmp_url("shared secret, $expire_time_in_seconds, "HTTP_METHOD"
+     * </code>
+     * @returns The temp url
+     */
+    public function get_temp_url($key, $expires, $method)
+    {
+        
+        $expires += time();
+        $url = $this->container->cfs_http->getStorageUrl() .  '/' . $this->container->name . '/' . $this->name;
+        return $url . '?temp_url_sig=' . hash_hmac('sha1', strtoupper($method) .
+               "\n" . $expires . "\n" . parse_url($url, PHP_URL_PATH), $key) .
+               '&temp_url_expires=' . $expires;
     }
 
     #private function _re_auth()
