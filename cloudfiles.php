@@ -1989,16 +1989,15 @@ class CF_Object
                     $extra_content_type_info = strpos($ct, "; ");
                     if ($extra_content_type_info)
                         $ct = substr($ct, 0, $extra_content_type_info);
-                }
 
-                if ($ct && $ct != 'application/octet-stream')
                     $this->content_type = $ct;
+                }
 
                 @finfo_close($finfo);
             }
         }
 
-        if (!$this->content_type && (string)is_file($handle) && function_exists("mime_content_type")) {
+        if ((!$this->content_type || $this->content_type == 'application/octet-stream') && (string)is_file($handle) && function_exists("mime_content_type")) {
             $this->content_type = @mime_content_type($handle);
         }
 
