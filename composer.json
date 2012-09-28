@@ -1,7 +1,7 @@
 {
-    "name": "rackspace/php-cloudfiles",
+    "name": "producteev/rackspace-php-cloudfiles",
     "type": "library",
-    "description": "PHP language bindings for Cloud Files API",
+    "description": "Rackspace php cloud files with composer. To updated when rackspace update his repo",
     "keywords": ["Rackspace", "Cloud Files", "RSCF", "PHP"],
     "homepage": "https://github.com/rackspace/php-cloudfiles",
     "authors": [
